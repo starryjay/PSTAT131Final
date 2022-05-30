@@ -1,0 +1,125 @@
+---
+title: "PSTAT 131 Final Project"
+author: "Jay Shreedhar"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    code-folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+We are viewing distribution of humidity because we want to use this as our response. Humidity is our response because it has the most natural variation in Santa Barbara and has implications for climate change, epidemiology, electronics, and other major aspects of modern life.
+
+# Exploratory Data Analysis<br /><br />
+Before anything else, we must load all of our packages. You can see the full list of packages I am using below. 
+```{r, message=FALSE}
+library(tidymodels)
+library(ISLR)
+library(ISLR2)
+library(discrim)
+library(poissonreg)
+library(corrr)
+library(klaR)
+library(dplyr)
+library(ggplot2)
+library(glmnet)
+library(janitor)
+library(corrplot)
+```
+<br /><br />
+
+### Reading in Data<br /><br />
+Now that that's out of the way, it's time to read in my data. I set my working directory to my desktop in order to access my data csv file. I used `clean_names()` from the `janitor` package to make my data easier to wrangle. Before reading in this csv, I spent a lot of time cleaning it in Excel - there were about four weeks of missing data in which absolutely no data was read. I simply removed those rows as there is no use for them, and out of my >2000 observations they constituted a very small part. I will also make sure R can read my date values as dates rather than characters, and add a `year_month` variable in order to calculate monthly averages. This makes some of my data, such as precipitation, temperature, and humidity, far easier to plot.
+```{r}
+setwd("/Users/shobhanashreedhar/Desktop")
+weather <- read.csv("weatherdatanew.csv") %>% clean_names()
+# We clean the variable names to make the code easier to write
+weather$date <- as.Date(weather$date, format="%m/%d/%y")
+# Cleaning date values
+weather <- weather %>% mutate(year_month=format(date, "%y/%m"), .before=date)
+# Adding year_month variable in order to create monthly averages for weather values
+
+```
+<br /><br />
+
+### Correlation Matrix<br /><br />
+Now it's time to start my EDA. Below, I created a correlation matrix of all of my variables in order to highlight important relationships between the predictors and response. 
+```{r}
+weather %>% 
+  dplyr::select(where(is.numeric)) %>% 
+  cor() %>% 
+  corrplot(type = 'lower', diag = FALSE, 
+           method = 'color')
+# Correlation matrix of all numeric variables in order to ascertain which correlations stand out
+```
+<br /><br />
+The correlation matrix has some interesting implications - while some of the relationships were anticipated, such as the correlation between average wind speed and maximum wind speed, some others were less obvious. In particular, the moderate negative correlation between average humidity and maximum wind speed and the strong positive correlation between average dew point and humidity stood out to me. Thinking about it, these relationships make sense. High wind speed means that water molecules in the air are spread further apart from each other, so it's harder for them to condense - thus, dew point is lower. Average dew point is also related to humidity in that dew point is the air temperature at which relative humidity would be 100% - water then begins to condense into dew. If humidity is high, it makes sense that the dew point would not have to be as low for relative humidity to reach 100% and for water to start condensing.
+<br /><br />
+
+### Exploring Individual Variables<br /><br />
+I'd like to find out if there are any patterns in my data, so I've plotted several line graphs below, each exploring one of the variables. 
+<br /><br />
+
+### Average Monthly Humidity<br /><br />
+```{r, fig.width=15}
+humidity_avg <- aggregate(average_humidity ~ year_month, weather, mean)
+# Aggregate means of monthly humidity in a new data frame
+h <- ggplot(data=humidity_avg, aes(x=year_month, y=average_humidity, group=1)) + 
+  geom_line() + labs(y="Average Humidity", x="Year/Month")  
+# Store plot for monthly average humidity
+h + theme(axis.text.x = element_text(angle = 90))
+# Show plot while rotating x-axis values 90 degrees to prevent crowding
+```
+<br /><br />
+
+### Average Monthly Temperature/Dew Point<br /><br />
+```{r, fig.width=15}
+temp_avg <- aggregate(average_temperature_o_f ~ year_month, weather, mean)
+# Aggregate means of monthly temp in a new data frame
+dew_avg <- aggregate(average_dew_point_o_f ~ year_month, weather, mean)
+# Aggregate means of monthly dew point in a new data frame
+
+total1 <- merge(humidity_avg, temp_avg, by="year_month")
+total <- merge(total1, dew_avg, by="year_month")
+ggplot(data=total, aes(x=year_month)) + 
+  geom_line(aes(y = average_temperature_o_f, group=1, color="Temperature")) + 
+  geom_line(aes(y = average_dew_point_o_f, group=1, color="Dew Point")) + 
+  theme(axis.text.x = element_text(angle = 90)) + labs(y="Degrees Fahrenheit", x="Year/Month")
+```
+<br /><br />
+
+### Total Monthly Precipitation<br /><br />
+```{r, fig.width=15}
+precip_month <- aggregate(precipitation_in ~ year_month, weather, sum)
+
+ggplot(data=precip_month, aes(x=year_month)) + geom_line(aes(y=precipitation_in, group=1)) + 
+  theme(axis.text.x = element_text(angle = 90)) + labs(y="Total Precipitation", x="Year/Month")
+```
+<br /><br />
+
+### Daily Average Pressure<br /><br />
+```{r, fig.width=15}
+ggplot(data=weather, aes(x=date)) + geom_point(aes(y=average_pressure_in_hg, group=1)) + 
+  theme(axis.text.x = element_text(angle = 90)) + labs(y="Average Pressure (inHg)", x="Date")
+```
+<br /><br />
+
+### Daily Average and Maximum Wind Speed<br /><br />
+```{r, fig.width=15}
+ggplot(data=weather, aes(x=date)) + geom_line(aes(y=average_wind_speed_mph, group=1, color="Average Wind Speed")) +
+  geom_line(aes(y=maximum_wind_speed_mph, group=1, color="Maximum Wind Speed")) +
+  theme(axis.text.x = element_text(angle=90)) + labs(y="Miles per Hour", x="Date")
+
+```
+<br /><br />
+
+# Modeling<br /><br />
+
+```{r}
+
+
+
+```
+
