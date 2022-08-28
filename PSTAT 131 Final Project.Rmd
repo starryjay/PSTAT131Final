@@ -11,6 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+! CHANGE LATER !
 We are viewing distribution of humidity because we want to use this as our response. Humidity is our response because it has the most natural variation in Santa Barbara and has implications for climate change, epidemiology, electronics, and other major aspects of modern life.
 
 # Exploratory Data Analysis<br /><br />
