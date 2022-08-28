@@ -149,7 +149,7 @@ Interestingly, average and maximum wind speed both dip every year around Decembe
 
 # Modeling<br /><br />
 
-Now it's time to model the data. I'm choosing three models: Random Forest, Logistic Regression (with Ridge and Lasso regularization), and an Elastic Net.
+Now it's time to model the data. I'm choosing three models: Random Forest, .
 
 ### Initial split<br /><br />
 
