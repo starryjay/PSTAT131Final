@@ -157,7 +157,6 @@ Since my dataset is relatively small (2530 observations), I'm choosing a 75-25 t
 ```{r}
 
 set.seed(3945)
-
 weather_split <- initial_split(weather, prop=0.75, strata=average_humidity)
 weather_train <- training(weather_split)
 weather_test <- testing(weather_split)
@@ -170,14 +169,15 @@ weather_fold <- vfold_cv(weather_train, v=5, strata=average_humidity)
 ### Recipe creation<br /><br />
 ```{r}
 
-weather_recipe <- recipe(average_humidity ~ ., data=weather_train) %>% 
+weather_recipe <- recipe(average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data=weather_train) %>% 
   step_center(all_predictors()) %>% 
   step_scale(all_predictors())
 
 ```
 
 
-### Boosted Decision Tree
+
+### Regression Tree
 ```{r, eval=FALSE}
 set.seed(3945)
 regtreespec <- decision_tree() %>%
@@ -208,17 +208,18 @@ regtreefinalfit <- fit(regtreefinal, data = weather_train)
 regtreefinalfit %>%
   extract_fit_engine() %>%
   rpart.plot(roundint = FALSE)
+
 ```
 
 ```{r, include=FALSE}
 
-save(regtreespec, tree_fit, regtreewf, param_grid, tune_res, bestcomplexity, regtreefinal, regtreefinalfit, file="boostdectree_models.RData")
+save(regtreespec, tree_fit, regtreewf, param_grid, tune_res, bestcomplexity, regtreefinal, regtreefinalfit, file="regtree_models.RData")
 
 ```
 
 ```{r, echo=FALSE}
 
-load(file="boostdectree_models.RData")
+load(file="regtree_models.RData")
 
 regtreefinalfit %>%
   extract_fit_engine() %>%
@@ -226,14 +227,18 @@ regtreefinalfit %>%
 
 ```
 
-### Bagging Random Forest
+
+
+### Random Forest with Bagging
 ```{r, eval=FALSE}
+
+set.seed(3945)
 
 bagging_spec <- rand_forest(mtry = .cols()) %>%
   set_engine("randomForest", importance = TRUE) %>%
   set_mode("regression")
 
-bagging_fit <- fit(bagging_spec, average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in,data = weather_train)
+bagging_fit <- fit(bagging_spec, average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data = weather_train)
 
 ```
 
@@ -250,6 +255,58 @@ load(file="baggingranfor_models.RData")
 ```
 
 
-### Tuned fitted elastic net
+
+### Boosted Tree
+```{r, eval=FALSE}
+
+set.seed(3945)
+
+boost_spec <- boost_tree(trees = 5000, tree_depth = 4) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+boost_fit <- fit(boost_spec, average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data = weather_train)
+
+```
+
+```{r, include=FALSE}
+
+save(boost_spec, boost_fit, file="boostedtree_models.RData")
+
+```
+
+```{r, echo=FALSE}
+
+load(file="boostedtree_models.RData")
+
+```
+
+
 
 ### Linear regression
+```{r}
+
+set.seed(3945)
+
+lm_model <- linear_reg() %>% 
+  set_engine("lm")
+
+lm_wflow <- workflow() %>% 
+  add_model(lm_model) %>% 
+  add_recipe(weather_recipe)
+
+lm_fit <- fit(lm_wflow, weather_train)
+
+```
+
+```{r, include=FALSE}
+
+save(lm_model, lm_wflow, lm_fit, file="linear_models.RData")
+
+```
+
+```{r, echo=FALSE}
+
+load(file="linear_models.RData")
+
+```
