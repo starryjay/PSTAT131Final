@@ -211,6 +211,7 @@ regtreefinalfit %>%
 ```
 
 ```{r, include=FALSE}
+
 save(regtreespec, tree_fit, regtreewf, param_grid, tune_res, bestcomplexity, regtreefinal, regtreefinalfit, file="boostdectree_models.RData")
 
 ```
@@ -226,7 +227,7 @@ regtreefinalfit %>%
 ```
 
 ### Bagging Random Forest
-```{r}
+```{r, eval=FALSE}
 
 bagging_spec <- rand_forest(mtry = .cols()) %>%
   set_engine("randomForest", importance = TRUE) %>%
@@ -234,7 +235,17 @@ bagging_spec <- rand_forest(mtry = .cols()) %>%
 
 bagging_fit <- fit(bagging_spec, average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in,data = weather_train)
 
+```
+
+```{r, include=FALSE}
+
 save(bagging_spec, bagging_fit, file="baggingranfor_models.RData")
+
+```
+
+```{r, echo=FALSE}
+
+load(file="baggingranfor_models.RData")
 
 ```
 
