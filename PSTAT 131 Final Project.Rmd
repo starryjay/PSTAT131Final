@@ -149,7 +149,7 @@ Interestingly, average and maximum wind speed both dip every year around Decembe
 
 # Modeling<br /><br />
 
-Now it's time to model the data. I'm choosing three models: Random Forest, .
+Now it's time to model the data. I'm choosing four models: a regression decision tree, a random forest with bagging, a boosted trees model, and a linear regression model.
 
 ### Initial split<br /><br />
 
@@ -167,19 +167,16 @@ weather_fold <- vfold_cv(weather_train, v=5, strata=average_humidity)
 <br /><br />
 
 ### Recipe creation<br /><br />
+
+Date variables are tiresome to integrate into our models, especially considering they do not fit neatly into numeric values, so we will leave them out when creating our recipe.<br /><br />
 ```{r}
 
-weather_recipe <- recipe(average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data=weather_train) %>% 
-  step_center(all_predictors()) %>% 
-  step_scale(all_predictors())
+weather_recipe <- recipe(average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data=weather_train)
 
 ```
 
 
-<<<<<<< HEAD
 
-=======
->>>>>>> a51ade0df1132f368af3f7cc42aeaa9a78caa4ef
 ### Regression Tree
 ```{r, eval=FALSE}
 set.seed(3945)
@@ -230,11 +227,8 @@ regtreefinalfit %>%
 
 ```
 
-<<<<<<< HEAD
 
 
-=======
->>>>>>> a51ade0df1132f368af3f7cc42aeaa9a78caa4ef
 ### Random Forest with Bagging
 ```{r, eval=FALSE}
 
@@ -260,16 +254,6 @@ load(file="baggingranfor_models.RData")
 
 ```
 
-### Boosted Tree
-```{r, eval=FALSE}
-
-boost_spec <- boost_tree(trees = 5000, tree_depth = 4) %>%
-  set_engine("xgboost") %>%
-  set_mode("regression")
-
-boost_fit <- fit(boost_spec, average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data = weather_train)
-
-```
 
 
 ### Boosted Tree
