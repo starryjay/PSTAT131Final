@@ -176,7 +176,10 @@ weather_recipe <- recipe(average_humidity ~ average_temperature_o_f + average_de
 ```
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> a51ade0df1132f368af3f7cc42aeaa9a78caa4ef
 ### Regression Tree
 ```{r, eval=FALSE}
 set.seed(3945)
@@ -227,8 +230,11 @@ regtreefinalfit %>%
 
 ```
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> a51ade0df1132f368af3f7cc42aeaa9a78caa4ef
 ### Random Forest with Bagging
 ```{r, eval=FALSE}
 
@@ -254,6 +260,16 @@ load(file="baggingranfor_models.RData")
 
 ```
 
+### Boosted Tree
+```{r, eval=FALSE}
+
+boost_spec <- boost_tree(trees = 5000, tree_depth = 4) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+boost_fit <- fit(boost_spec, average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data = weather_train)
+
+```
 
 
 ### Boosted Tree
