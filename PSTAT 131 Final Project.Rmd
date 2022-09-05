@@ -13,6 +13,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Out of all the advantages of attending UC Santa Barbara, one of the most often cited is the lovely weather year-round in Goleta and SB. This stable, temperate climate is created by a variety of factors, not least of all the coastal location and the tall Santa Ynez mountains in the north acting as a sort of shield against weather conditions further inland. 
 ! CHANGE LATER ! We are viewing distribution of humidity because we want to use this as our response. Humidity is our response because it has the most natural variation in Santa Barbara and has implications for climate change, epidemiology, electronics, and other major aspects of modern life.<br /><br />
 
 # Exploratory Data Analysis<br /><br />
@@ -204,9 +205,6 @@ regtreespec <- decision_tree() %>%
   set_engine("rpart") %>%
   set_mode("regression")
 
-tree_fit <- regtreespec %>%
-  fit(average_humidity ~ maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in + average_temperature_o_f + average_dew_point_o_f, data=weather_train)
-
 regtreewf <- workflow() %>%
   add_model(regtreespec %>% set_args(cost_complexity = tune(), tree_depth = tune())) %>%
   add_formula(average_humidity ~ maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in + average_temperature_o_f + average_dew_point_o_f)
@@ -227,15 +225,13 @@ regtreefinalfit <- fit(regtreefinal, data = weather_train)
 
 getcp(extract_fit_engine(regtreefinalfit))
 
-plotcp(extract_fit_engine(regtreefinalfit))
+regtreefinalpruned <- prune(extract_fit_engine(regtreefinalfit), cp=2.225653e-05)
 
-regtreefinalpruned <- prune(extract_fit_engine(regtreefinalfit), cp=1.524155e-05)
-
-save(regtreespec, tree_fit, regtreewf, param_grid, tune_res, bestcomplexity, regtreefinal, regtreefinalfit, regtreefinalpruned,  file="regtree_models.RData")
+save(regtreespec, regtreewf, param_grid, tune_res, bestcomplexity, regtreefinal, regtreefinalfit, regtreefinalpruned,  file="regtree_models.RData")
 
 ```
 ```{r plot_dectree, include=FALSE}
-tiff("test.tiff", units="in", width=11, height=11, res=1500)
+tiff("DecisionTree.tiff", units="in", width=11, height=11, res=1500)
 
 regtreefinalpruned %>%
   rpart.plot(roundint = FALSE, varlen = -9, fallen.leaves = FALSE)
@@ -279,10 +275,14 @@ It looks like the points follow the line pretty well! Interestingly, the points 
 <br /><br />
 
 ### Random Forest with Bagging
+```{r load_ranfor, echo=FALSE}
 
+load(file="baggingranfor_models.RData")
+
+```
 <br /><br />
 Next we will fit a Random Forest model with bagging. We set `mtry` to 6 since there are 6 predictors. <br /><br />
-```{r bagging_ran_for}
+```{r bagging_ran_for, eval=FALSE}
 
 set.seed(3945)
 
@@ -290,57 +290,109 @@ bagging_spec <- rand_forest(mtry = 6) %>%
   set_engine("randomForest") %>%
   set_mode("regression")
 
-bagging_fit <- fit(bagging_spec, average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data = weather_train)
+baggingwf <- workflow() %>%
+  add_model(bagging_spec %>% set_args(min_n = tune())) %>%
+  add_formula(average_humidity ~ maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in + average_temperature_o_f + average_dew_point_o_f)
+
+param_grid_bag <- grid_regular(min_n(), levels = 5)
+
+tune_res_bag <- tune_grid(
+  baggingwf,
+  resamples = weather_fold, 
+  grid = param_grid_bag
+)
+
+bestcomplexitybag <- select_best(tune_res_bag, metric = "rmse")
+
+bagfinal <- finalize_workflow(baggingwf, bestcomplexitybag)
+
+bagfinalfit <- fit(bagfinal, data = weather_train)
 
 ```
 
 ```{r save_ranfor, include=FALSE}
 
-save(bagging_spec, bagging_fit, file="baggingranfor_models.RData")
+save(bagging_spec, baggingwf, param_grid_bag, tune_res_bag, bestcomplexitybag, bagfinal, bagfinalfit, file="baggingranfor_models.RData")
 
 ```
+<br /><br /> Now let's see how this model performs on the testing set. <br /><br />
+```{r testing_bagging}
 
-```{r load_ranfor, echo=FALSE}
-
-load(file="baggingranfor_models.RData")
-
-```
-
-```{r}
-
-
+augment(bagfinalfit, new_data = weather_test) %>%
+  rmse(truth = average_humidity, estimate = .pred)
 
 ```
+<br /><br />
+The RMSE for this model is significantly lower than for the Decision Tree model - we have an RMSE of 1.45% as compared to 2.56%, a full 1.11% lower. 
+<br /><br />
 
-### Boosted Tree
 
-```{r boosted_tree}
-
-set.seed(3945)
-
-boost_spec <- boost_tree(trees = 5000, tree_depth = 4) %>%
-  set_engine("xgboost") %>%
-  set_mode("regression")
-
-boost_fit <- fit(boost_spec, average_humidity ~ average_temperature_o_f + average_dew_point_o_f + maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in, data = weather_train)
-
-```
-
-```{r save_boosted_tree, include=FALSE}
-
-save(boost_spec, boost_fit, file="boostedtree_models.RData")
-
-```
-
+### Boosted Tree <br /><br />
 ```{r load_boosted_tree, echo=FALSE}
 
 load(file="boostedtree_models.RData")
 
 ```
+Now we fit a Boosted Tree model. We set `trees` to 5000 and `mtry` to 6 like the previous model, then tune `tree_depth` and `min_n`, using the `xgboost` engine.
 
+```{r boosted_tree, eval=FALSE}
+
+set.seed(3945)
+
+boost_spec <- boost_tree(trees = 5000, learn_rate = tune()) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+boostwf <- workflow() %>%
+  add_model(boost_spec) %>%
+  add_formula(average_humidity ~ maximum_wind_speed_mph + average_wind_speed_mph + average_pressure_in_hg + precipitation_in + average_temperature_o_f + average_dew_point_o_f)
+  
+param_grid_boost <- grid_regular(learn_rate(range=c(-10, -1)), levels = 5)
+
+tune_res_boost <- tune_grid(
+  boostwf,
+  resamples = weather_fold, 
+  grid = param_grid_boost
+)
+
+bestcomplexityboost <- select_best(tune_res_boost, metric = "rmse")
+
+boostfinal <- finalize_workflow(boostwf, bestcomplexityboost)
+
+boostfinalfit <- fit(boostfinal, data = weather_train)
+
+```
+
+```{r save_boosted_tree, include=FALSE}
+
+save(boost_spec, boostwf, param_grid_boost, tune_res_boost, bestcomplexityboost, boostfinal, boostfinalfit,  file="boostedtree_models.RData")
+
+```
+
+<br /><br />
+
+Let's see how the Boosted Tree model performs on the testing data.
+
+```{r}
+
+augment(boostfinalfit, new_data = weather_test) %>%
+  rmse(truth = average_humidity, estimate = .pred)
+
+```
+<br /><br />
+Our RMSE for this model is 1.39%, a bit lower than it was for the Random Forest model! This is 1.17% less than our Decision Tree RMSE.
+<br /><br />
 ### Linear regression
+<br /><br />
+Finally, we fit a Linear Regression model. This is straightforward compared to the other models.
+<br /><br />
+```{r load_lin_reg, echo=FALSE}
 
-```{r lin_reg}
+load(file="linear_models.RData")
+
+```
+
+```{r lin_reg, eval=FALSE}
 
 set.seed(3945)
 
@@ -361,8 +413,24 @@ save(lm_model, lm_wflow, lm_fit, file="linear_models.RData")
 
 ```
 
-```{r load_lin_reg, echo=FALSE}
 
-load(file="linear_models.RData")
+<br /><br />
+
+Now let's see the performance of the Linear Regression model on the testing set. <br /><br />
+
+```{r}
+
+augment(lm_fit, new_data = weather_test) %>%
+  rmse(truth = average_humidity, estimate = .pred)
+
+```
+
+The RMSE for this model is 2.26% - though this is certainly on the higher side, it's still 0.3% lower than the Decision Tree model. <br /><br />
+
+Finally, let's compare all four models. 
+
+```{r}
+
+
 
 ```
