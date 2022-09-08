@@ -1,0 +1,9 @@
+Data measured at Santa Barbara Municipal Airport Weather Station (Global Historical Climatology Network Daily Station ID: USW00023190).
+
+average_temperature_o_f: Daily average temperature, degrees Fahrenheit
+average_dew_point_o_f: Daily average dew point, degrees Fahrenheit
+average_humidity: Daily average humidity, percentage
+maximum_wind_speed_mph: Daily maximum wind speed, miles per hour
+average_wind_speed_mph: Daily average wind speed, miles per hour
+average_pressure_in_hg: Daily average pressure, inches of mercury
+precipitation_in: Daily total precipitation, inches
