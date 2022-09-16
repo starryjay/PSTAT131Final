@@ -2,6 +2,8 @@
 
 This is a project I completed for my PSTAT 131 - Introduction to Statistical Machine Learning class at UCSB. 
 
+The "PSTAT131Final.Rproj" file contains this project.
+
 The full project report is available at "PSTAT-131-Final-Project.html".
 
 You can view the R Markdown file that was knitted into the completed HTML file at "PSTAT 131 Final Project.Rmd".
